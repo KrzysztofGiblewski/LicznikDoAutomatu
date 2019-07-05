@@ -14,31 +14,37 @@ void setup() {
   lcd.print("0");
   pinMode(14, INPUT_PULLUP); 
   pinMode(15, INPUT_PULLUP); 
-   pinMode(16, INPUT_PULLUP); 
+  pinMode(16, INPUT_PULLUP); 
  
 }
 
 void loop() {
-  if (digitalRead(14) == LOW)
-   {
-      delay(300);
-      ilePacz++;
-      ileKart++;
-      ileWszy++;
+  if (digitalRead(14) == LOW)   {
+     dodaj();
    }
-     if (digitalRead(15) == LOW)
-   {
-      delay(300);
-      ilePacz--;
-      ileKart--;
-      ileWszy--;
+     if (digitalRead(15) == LOW)   {      
+      odejmij();
    }
-  lcd.setCursor(0,0);
-    lcd.print(ileWszy);
+         lcd.setCursor(0,0);
+         lcd.print(ileWszy);
+         lcd.print("   ");
          lcd.setCursor(0, 1);
          lcd.print(ilePacz);
+         lcd.print("   ");
          
        
   
   
+}
+void dodaj(){
+   delay(300);
+      ilePacz++;
+      ileKart++;
+      ileWszy++;
+}
+void odejmij(){
+  delay(300);
+      ilePacz--;
+      ileKart--;
+      ileWszy--;
 }
