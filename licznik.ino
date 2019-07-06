@@ -23,6 +23,9 @@ void setup() {
 }
 
 void loop() {
+  if (digitalRead(16) == LOW)   {
+    zmienEkrany();
+  }
   liczKart(); //licze kartony
   liczPacz(); //licze zeby było tyle ile ma mieć paczka
 
@@ -61,41 +64,40 @@ void loop() {
     case 2:                             //ustaw ile w paczce
       {
         if (digitalRead(14) == LOW)   {
-          ustawPacz+=5;
+          ustawPacz += 5;
         }
         if (digitalRead(15) == LOW)   {
-         ustawPacz-=5;
+          ustawPacz -= 5;
         }
         lcd.setCursor(0, 1);
         lcd.print("PACZKA ma mieć ");
         lcd.print(ustawPacz);
         break;
       }
- case 3:                             //ustaw ile w kartonie
+    case 3:                             //ustaw ile w kartonie
       {
         if (digitalRead(14) == LOW)   {
-          ustawKart+=ustawPacz;
+          ustawKart += ustawPacz;
         }
         if (digitalRead(15) == LOW)   {
-         ustawKart-=ustawPacz;
+          ustawKart -= ustawPacz;
         }
         lcd.setCursor(0, 1);
         lcd.print("w KARTONIE ma być ");
         lcd.print(ustawKart);
         break;
       }
-      case 4:                             //Zeruj liczniki
+    case 4:                             //Zeruj liczniki
       {
-        if (digitalRead(14) == LOW)   {
+        if (digitalRead(14) == LOW)   {     //jak wcisne + to wychodzimy ekran wyrzej
           ekrany++;
         }
-        if (digitalRead(15) == LOW)   {
-         ileWszy=0;
-         ilePacz=0;
+        if (digitalRead(15) == LOW)   {     //jak wcisne - to kasuje liczniki
+          ileWszy = 0;
+          ilePacz = 0;
         }
         lcd.setCursor(0, 1);
         lcd.print(" skasuj licznik - wyjdź + ");
-  
         break;
       }
 
@@ -125,4 +127,9 @@ void liczPacz() {
 void liczKart() {
   ileKart = ileWszy / ustawKart;
   ileWOsta = ileWszy % ustawKart;
+}
+void zmienEkrany() {
+  ekrany++;
+  if (ekrany > 4)
+    ekrany = 0;
 }
