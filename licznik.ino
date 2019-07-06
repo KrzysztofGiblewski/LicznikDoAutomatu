@@ -5,46 +5,124 @@
 // with the arduino pin number it is connected to
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-   int ilePacz=0;
-   int ileKart=0;
-   int ileWszy=0;
-   
+int ilePacz = 0;   //ile sztuk w bierzacej paczce
+int ileKart = 0;   //ile pelnych kartonow
+int ileWszy = 10000;   //ile wszystkich produktow
+int ustawPacz = 10; // zadaje ilosc w paczce np 100szt
+int ustawKart = 20; //zadaje ilosc w kartonie np 1000sz
+int ileWOsta = 0; //ile w ostatnim nie pelnym kartonie
+int ekrany = 0;
+
 void setup() {
   lcd.begin(16, 2);
   lcd.print("0");
-  pinMode(14, INPUT_PULLUP); 
-  pinMode(15, INPUT_PULLUP); 
-  pinMode(16, INPUT_PULLUP); 
- 
+  pinMode(14, INPUT_PULLUP); //przycisk dodawania sztuki
+  pinMode(15, INPUT_PULLUP); // przycisk odejmowania
+  pinMode(16, INPUT_PULLUP); //przycisk wyboru
+
 }
 
 void loop() {
-  if (digitalRead(14) == LOW)   {
-     dodaj();
-   }
-     if (digitalRead(15) == LOW)   {      
-      odejmij();
-   }
-         lcd.setCursor(0,0);
-         lcd.print(ileWszy);
-         lcd.print("   ");
-         lcd.setCursor(0, 1);
-         lcd.print(ilePacz);
-         lcd.print("   ");
-         
-       
+  liczKart(); //licze kartony
+  liczPacz(); //licze zeby było tyle ile ma mieć paczka
+
+  lcd.setCursor(0, 0);
+  lcd.print(ileWszy);
+  lcd.print(" szt   ");
+  switch (ekrany)
+  {
+    case 0:             // bierzacza ilosc w paczce wlasnie robionej
+      {
+        if (digitalRead(14) == LOW)   {
+          dodaj(1);
+        }
+        if (digitalRead(15) == LOW)   {
+          odejmij(1);
+        }
+        lcd.setCursor(0, 1);
+        lcd.print(ilePacz);
+        lcd.print(" szt   ");
+        break;
+      }
+    case 1:                     // bierzaca ilosc sztuk w kartonie
+      {
+        if (digitalRead(14) == LOW)   {
+          dodaj(1);
+        }
+        if (digitalRead(15) == LOW)   {
+          odejmij(1);
+        }
+        lcd.setCursor(0, 1);
+        lcd.print(ileWOsta);
+        lcd.print(" szt w kartonie  ");
+        lcd.print(ileKart);
+        break;
+      }
+    case 2:                             //ustaw ile w paczce
+      {
+        if (digitalRead(14) == LOW)   {
+          ustawPacz+=5;
+        }
+        if (digitalRead(15) == LOW)   {
+         ustawPacz-=5;
+        }
+        lcd.setCursor(0, 1);
+        lcd.print("PACZKA ma mieć ");
+        lcd.print(ustawPacz);
+        break;
+      }
+ case 3:                             //ustaw ile w kartonie
+      {
+        if (digitalRead(14) == LOW)   {
+          ustawKart+=ustawPacz;
+        }
+        if (digitalRead(15) == LOW)   {
+         ustawKart-=ustawPacz;
+        }
+        lcd.setCursor(0, 1);
+        lcd.print("w KARTONIE ma być ");
+        lcd.print(ustawKart);
+        break;
+      }
+      case 4:                             //Zeruj liczniki
+      {
+        if (digitalRead(14) == LOW)   {
+          ekrany++;
+        }
+        if (digitalRead(15) == LOW)   {
+         ileWszy=0;
+         ilePacz=0;
+        }
+        lcd.setCursor(0, 1);
+        lcd.print(" skasuj licznik - wyjdź + ");
   
-  
+        break;
+      }
+
+  }
+
 }
-void dodaj(){
-   delay(300);
-      ilePacz++;
-      ileKart++;
-      ileWszy++;
-}
-void odejmij(){
+void dodaj(int ile) {
   delay(300);
-      ilePacz--;
-      ileKart--;
-      ileWszy--;
+  ilePacz += ile;
+  ileWszy += ile;
+
+}
+void odejmij(int ile) {
+  delay(300);
+  if (ilePacz >= 0) {
+    ilePacz -= ile;
+    ileWszy -= ile;
+  }
+  if (ilePacz < 0)
+    ilePacz = ustawPacz - ile;
+
+}
+void liczPacz() {
+  if (ilePacz > ustawPacz)
+    ilePacz = 1;
+}
+void liczKart() {
+  ileKart = ileWszy / ustawKart;
+  ileWOsta = ileWszy % ustawKart;
 }
