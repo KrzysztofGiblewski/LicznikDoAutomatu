@@ -7,9 +7,9 @@ const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 int ilePacz = 0;   //ile sztuk w bierzacej paczce
 int ileKart = 0;   //ile pelnych kartonow
-int ileWszy = 10000;   //ile wszystkich produktow
-int ustawPacz = 10; // zadaje ilosc w paczce np 100szt
-int ustawKart = 20; //zadaje ilosc w kartonie np 1000sz
+long ileWszy = 0;   //ile wszystkich produktow
+int ustawPacz = 100; // zadaje ilosc w paczce np 100szt
+int ustawKart = 0; //zadaje ilosc w kartonie np 1000sz
 int ileWOsta = 0; //ile w ostatnim nie pelnym kartonie
 int ekrany = 0;
 
@@ -31,7 +31,7 @@ void loop() {
 
   lcd.setCursor(0, 0);
   lcd.print(ileWszy);
-  lcd.print(" szt   ");
+  lcd.print(" szt wszystkich ");
   switch (ekrany)
   {
     case 0:             // bierzacza ilosc w paczce wlasnie robionej
@@ -44,7 +44,7 @@ void loop() {
         }
         lcd.setCursor(0, 1);
         lcd.print(ilePacz);
-        lcd.print(" szt   ");
+        lcd.print(" szt           ");
         break;
       }
     case 1:                     // bierzaca ilosc sztuk w kartonie
@@ -65,39 +65,46 @@ void loop() {
       {
         if (digitalRead(14) == LOW)   {
           ustawPacz += 5;
+          delay(300);
         }
         if (digitalRead(15) == LOW)   {
           ustawPacz -= 5;
+          delay(300);
         }
         lcd.setCursor(0, 1);
-        lcd.print("PACZKA ma mieć ");
+        lcd.print("PACZKA to ");
         lcd.print(ustawPacz);
+        lcd.print("szt    ");
         break;
       }
     case 3:                             //ustaw ile w kartonie
       {
         if (digitalRead(14) == LOW)   {
           ustawKart += ustawPacz;
+          delay(300);
         }
         if (digitalRead(15) == LOW)   {
+          if(ustawKart>0)
           ustawKart -= ustawPacz;
+          delay(300);
         }
         lcd.setCursor(0, 1);
-        lcd.print("w KARTONIE ma być ");
+        lcd.print("KARTON to ");
         lcd.print(ustawKart);
+        lcd.print("szt        ");
         break;
       }
     case 4:                             //Zeruj liczniki
       {
         if (digitalRead(14) == LOW)   {     //jak wcisne + to wychodzimy ekran wyrzej
-          ekrany++;
+          zmienEkrany();
         }
         if (digitalRead(15) == LOW)   {     //jak wcisne - to kasuje liczniki
           ileWszy = 0;
           ilePacz = 0;
         }
         lcd.setCursor(0, 1);
-        lcd.print(" skasuj licznik - wyjdź + ");
+        lcd.print("-skasuj- +wyjdz+");
         break;
       }
 
@@ -125,10 +132,17 @@ void liczPacz() {
     ilePacz = 1;
 }
 void liczKart() {
-  ileKart = ileWszy / ustawKart;
-  ileWOsta = ileWszy % ustawKart;
+  if (ustawKart > 0) {
+    ileKart = ileWszy / ustawKart;
+    ileWOsta = ileWszy % ustawKart;
+  } else {
+    ileKart = 1 ;
+    ileWOsta = ileWszy;
+  }
+
 }
 void zmienEkrany() {
+  delay(300);
   ekrany++;
   if (ekrany > 4)
     ekrany = 0;
