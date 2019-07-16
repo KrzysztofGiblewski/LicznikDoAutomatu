@@ -1,8 +1,6 @@
-// include the library code:
 #include <LiquidCrystal.h>
-
-// initialize the library by associating any needed LCD interface pin
-// with the arduino pin number it is connected to
+//VSS-  VDD+   VO-do potencjometru                          A+     K-
+//             D12     D11      D5      D4      D3      D2
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 int ilePacz = 0;   //ile sztuk w bierzacej paczce
@@ -17,28 +15,32 @@ int coIle = 1;
 int takty = 0;
 int sztuka = 1;
 int wartoscImpulsu = 100;
+int popWartoscImpu  = 0;
+char impuls = 1; //wartosc 0 lub 1 zeby po podaniu ciaglego napiecia nie naliczal kolejnych sztuk
 
 void setup() {
   lcd.begin(16, 2);
   lcd.print("0");
-  pinMode(14, INPUT_PULLUP); //przycisk dodawania sztuki
-  pinMode(15, INPUT_PULLUP); // przycisk odejmowania
-  pinMode(16, INPUT_PULLUP); //przycisk wyboru
-  // pinMode(17,analogRead);
+  pinMode(14, INPUT_PULLUP); //przycisk dodawania sztuki A0
+  pinMode(15, INPUT_PULLUP); // przycisk odejmowania A1
+  pinMode(16, INPUT_PULLUP); //przycisk wyboru A2
   Serial.begin(9600);
-  wartoscImpulsu = analogRead(A3);
+  wartoscImpulsu = analogRead(A3); //pin 17 czyli A3
 
 }
 
 void loop() {
   wartoscImpulsu = analogRead(A3);
-  delay(150);
-  if (wartoscImpulsu * (5.0 / 1024.0) > 2.5) {
-    dodaj(sztuka*poIle);
+  delay(50);
+  if (wartoscImpulsu<500)
+    impuls = 1;
+  if ((wartoscImpulsu * (5.0 / 1024.0) > 1.5) && impuls == 1 ) { //warunek minimalnego napiecia dla impulsu zeby dodac
+    dodaj(sztuka * poIle);
+    impuls = 0;
   }
-  Serial.println(wartoscImpulsu * (5.0 / 1024.0));
+  Serial.println(wartoscImpulsu * (5.0 / 1024.0)); //wyswietla napiecie na pinie A3
 
-  if (digitalRead(16) == LOW)   { //przycisk wyboru
+  if (digitalRead(16) == LOW)   { //przycisk wyboru A2
     zmienEkrany();
   }
   liczKart(); //licze kartony
@@ -52,42 +54,34 @@ void loop() {
     case 0:             // bierzacza ilosc w paczce wlasnie robionej
       {
         if (digitalRead(14) == LOW)   {
-          dodaj(sztuka*poIle);
+          dodaj(sztuka * poIle);
         }
         if (digitalRead(15) == LOW)   {
-          odejmij(sztuka*poIle);
+          odejmij(sztuka * poIle);
         }
-        lcd.setCursor(0, 1);
-        lcd.print(ilePacz);
-        lcd.print(" szt           ");
+        drugaLinia("", ilePacz, " sztuk w paczce           ", 0);
         break;
       }
     case 1:                     // bierzaca ilosc sztuk w kartonie
       {
         if (digitalRead(14) == LOW)   {
-          dodaj(sztuka*poIle);
+          dodaj(sztuka * poIle);
         }
         if (digitalRead(15) == LOW)   {
-          odejmij(sztuka*poIle);
+          odejmij(sztuka * poIle);
         }
-        lcd.setCursor(0, 1);
-        lcd.print(ileWOsta);
-        lcd.print(" w ostatnim kartonie  ");
-        lcd.print(ileKart);
+        drugaLinia("", ileWOsta, " w ostatnim kartonie  ", ileKart);
         break;
       }
     case 2:                     // ilosc kartonow
       {
         if (digitalRead(14) == LOW)   {
-          dodaj(sztuka*poIle);
+          dodaj(sztuka * poIle);
         }
         if (digitalRead(15) == LOW)   {
-          odejmij(sztuka*poIle);
+          odejmij(sztuka * poIle);
         }
-        lcd.setCursor(0, 1);
-        lcd.print(ileKart);
-        lcd.print(" pelne kartony  ");
-
+        drugaLinia("", ileKart, " pelne kartony      ", 0);
         break;
       }
     case 3:                             //ustaw ile w paczce
@@ -101,10 +95,7 @@ void loop() {
             ustawPacz -= 5;
           delay(250);
         }
-        lcd.setCursor(0, 1);
-        lcd.print("PACZKA to ");
-        lcd.print(ustawPacz);
-        lcd.print(" szt    ");
+        drugaLinia("PACZKA to ", ustawPacz, " szt      ", 0);
         break;
       }
     case 4:                             //ustaw ile w kartonie
@@ -118,10 +109,7 @@ void loop() {
             ustawKart -= ustawPacz;
           delay(250);
         }
-        lcd.setCursor(0, 1);
-        lcd.print("KARTON to ");
-        lcd.print(ustawKart);
-        lcd.print(" szt        ");
+        drugaLinia("KARTON to ", ustawKart, " szt           ", 0);
         break;
       }
     case 5:                             //ustaw po ile ma sumowac 1 czy np 2 jak na dwa tory
@@ -135,10 +123,7 @@ void loop() {
             poIle--;
           delay(250);
         }
-        lcd.setCursor(0, 1);
-        lcd.print("LICZ PO ");
-        lcd.print(poIle);
-        lcd.print(" szt        ");
+        drugaLinia("LICZ PO ", poIle, " szt             ", 0);
         break;
       }
     case 6:                             //ustaw co ile ma dodawac 1 sztuke np co 2 uderzenia
@@ -148,14 +133,12 @@ void loop() {
           delay(250);
         }
         if (digitalRead(15) == LOW)   {
-          if (coIle > 0)
+          if (coIle > 1)
             coIle--;
+
           delay(250);
         }
-        lcd.setCursor(0, 1);
-        lcd.print("LICZ ");
-        lcd.print(coIle);
-        lcd.print(" takt jak1 ");
+        drugaLinia("LICZ ", coIle, " takt jak", 1);
         break;
       }
     case 7:                             //Zeruj liczniki
@@ -168,8 +151,7 @@ void loop() {
           ilePacz = 0;
           zmienEkrany();
         }
-        lcd.setCursor(0, 1);
-        lcd.print("-skasuj- +wyjdz+");
+        drugaLinia("+wyjdz+ -skasuj- ", 0, "", 0);
         break;
       }
 
@@ -178,14 +160,14 @@ void loop() {
 
 }
 void dodaj(int ile) {
+
   takty++;
-  if(takty==coIle){
+  if (takty == coIle) {
     ileWszy += ile;
-    takty=0;
+    takty = 0;
   }
-  
   ilePacz = ileWszy % ustawPacz;
-  delay(250);
+  delay(50);
 }
 void odejmij(int ile) {
   if (ileWszy > 0) {
@@ -213,4 +195,12 @@ void zmienEkrany() {
   ekrany++;
   if (ekrany > 7)
     ekrany = 0;
+}
+void drugaLinia(String raz, int dwa, String trzy, int cztery) {
+  lcd.setCursor(0, 1);
+  lcd.print(raz);
+  lcd.print(dwa);
+  lcd.print(trzy);
+  lcd.print(cztery);
+
 }
