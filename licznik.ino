@@ -18,7 +18,7 @@ int wartoscImpulsu = 100;
 int popWartoscImpu  = 0;
 char impuls = 1; //wartosc 0 lub 1 zeby po podaniu ciaglego napiecia nie naliczal kolejnych sztuk
 double napImpulsu = 3.4; //minimalna wartość impulsu w voltach dla impulsu
-double zeroNapiecia = 1; // wartosc napiecia ponirzej ktorego uznajemy za zanik impulsu
+double zeroNapiecia = 0.01; // wartosc napiecia ponirzej ktorego uznajemy za zanik impulsu
 int opuznij = 100;
 
 void setup() {
@@ -52,7 +52,10 @@ void loop() {
 
   lcd.setCursor(0, 0);
   lcd.print(ileWszy);
-  lcd.print(" szt wszystkich ");
+  lcd.print(" szt ");
+  lcd.print((wartoscImpulsu * (5.0 / 1024.0)));
+  lcd.print("V");
+  // lcd.print(" szt wszystkich ");
   switch (ekrany)
   {
     case 0:             // bierzacza ilosc w paczce wlasnie robionej
@@ -105,11 +108,13 @@ void loop() {
     case 4:                             //Zeruj liczniki
       {
         if (digitalRead(14) == LOW)   {     //jak wcisne + to wychodzimy ekran wyrzej
+          ekrany = -1;
           zmienEkrany();
         }
         if (digitalRead(15) == LOW)   {     //jak wcisne - to kasuje liczniki
           ileWszy = 0;
           ilePacz = 0;
+          ekrany = -1;
           zmienEkrany();
         }
         drugaLinia("+wyjdz+ -skasuj- ", 0, "", 0);
@@ -181,34 +186,36 @@ void loop() {
     case 9:                             //ustaw napiecie wejsciowe impulsu
       {
         if (digitalRead(14) == LOW)   {
-          napImpulsu += 0.1;
+          napImpulsu += 0.05;
           delay(200);
         }
         if (digitalRead(15) == LOW)   {
-          if (poIle > 0)
-            napImpulsu -= 0.1;
+          if (napImpulsu > 0)
+            napImpulsu -= 0.05;
           delay(200);
         }
         lcd.setCursor(0, 1);
-        lcd.print("MIN NAP IMP ");
+        lcd.print("MIN V IMP ");
         lcd.print(napImpulsu);
+        lcd.print("V");
         break;
       }
 
     case 10:                             // tu ustawiam napiecie ponizej ktorego traktujemy jak zero
       {
         if (digitalRead(14) == LOW)   {
-          zeroNapiecia += 0.1;
+          zeroNapiecia += 0.01;
           delay(200);
         }
         if (digitalRead(15) == LOW)   {
-          if (poIle > 0)
-            zeroNapiecia -= 0.1;
+          if (zeroNapiecia >=0.01)
+            zeroNapiecia -= 0.01;
           delay(200);
         }
         lcd.setCursor(0, 1);
-        lcd.print("MAX NAP ZERA ");
+        lcd.print("MAX V ZER ");
         lcd.print(zeroNapiecia);
+        lcd.print("V");
         break;
       }
 
