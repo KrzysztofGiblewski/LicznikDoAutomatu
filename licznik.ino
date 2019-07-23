@@ -17,6 +17,9 @@ int sztuka = 1;
 int wartoscImpulsu = 100;
 int popWartoscImpu  = 0;
 char impuls = 1; //wartosc 0 lub 1 zeby po podaniu ciaglego napiecia nie naliczal kolejnych sztuk
+double napImpulsu = 3.4; //minimalna wartość impulsu w voltach dla impulsu
+double zeroNapiecia = 1; // wartosc napiecia ponirzej ktorego uznajemy za zanik impulsu
+int opuznij = 100;
 
 void setup() {
   lcd.begin(16, 2);
@@ -31,14 +34,15 @@ void setup() {
 
 void loop() {
   wartoscImpulsu = analogRead(A3);
-  delay(50);
-  if (wartoscImpulsu<500)
+  delay(opuznij);
+  if (wartoscImpulsu < zeroNapiecia) //jak napiecie zaniknie to mozna znowu liczyc impuls
     impuls = 1;
-  if ((wartoscImpulsu * (5.0 / 1024.0) > 1.5) && impuls == 1 ) { //warunek minimalnego napiecia dla impulsu zeby dodac
+  if ((wartoscImpulsu * (5.0 / 1024.0) > napImpulsu) && impuls == 1 ) { //warunek minimalnego napiecia dla impulsu zeby dodac
     dodaj(sztuka * poIle);
     impuls = 0;
   }
-  Serial.println(wartoscImpulsu * (5.0 / 1024.0)); //wyswietla napiecie na pinie A3
+  //wyswietla napiecie na pinie A3
+  Serial.println(wartoscImpulsu * (5.0 / 1024.0));
 
   if (digitalRead(16) == LOW)   { //przycisk wyboru A2
     zmienEkrany();
@@ -98,50 +102,7 @@ void loop() {
         drugaLinia("PACZKA to ", ustawPacz, " szt      ", 0);
         break;
       }
-    case 4:                             //ustaw ile w kartonie
-      {
-        if (digitalRead(14) == LOW)   {
-          ustawKart += ustawPacz;
-          delay(250);
-        }
-        if (digitalRead(15) == LOW)   {
-          if (ustawKart >= ustawPacz)
-            ustawKart -= ustawPacz;
-          delay(250);
-        }
-        drugaLinia("KARTON to ", ustawKart, " szt           ", 0);
-        break;
-      }
-    case 5:                             //ustaw po ile ma sumowac 1 czy np 2 jak na dwa tory
-      {
-        if (digitalRead(14) == LOW)   {
-          poIle++;
-          delay(250);
-        }
-        if (digitalRead(15) == LOW)   {
-          if (poIle > 0)
-            poIle--;
-          delay(250);
-        }
-        drugaLinia("LICZ PO ", poIle, " szt             ", 0);
-        break;
-      }
-    case 6:                             //ustaw co ile ma dodawac 1 sztuke np co 2 uderzenia
-      {
-        if (digitalRead(14) == LOW)   {
-          coIle++;
-          delay(250);
-        }
-        if (digitalRead(15) == LOW)   {
-          if (coIle > 1)
-            coIle--;
-
-          delay(250);
-        }
-        drugaLinia("LICZ ", coIle, " takt jak", 1);
-        break;
-      }
-    case 7:                             //Zeruj liczniki
+    case 4:                             //Zeruj liczniki
       {
         if (digitalRead(14) == LOW)   {     //jak wcisne + to wychodzimy ekran wyrzej
           zmienEkrany();
@@ -156,25 +117,121 @@ void loop() {
       }
 
 
+
+    case 5:                             //ustaw ile w kartonie
+      {
+        if (digitalRead(14) == LOW)   {
+          ustawKart += ustawPacz;
+          delay(250);
+        }
+        if (digitalRead(15) == LOW)   {
+          if (ustawKart >= ustawPacz)
+            ustawKart -= ustawPacz;
+          delay(250);
+        }
+        drugaLinia("KARTON to ", ustawKart, " szt           ", 0);
+        break;
+      }
+    case 6:                             //ustaw po ile ma sumowac 1 czy np 2 jak na dwa tory
+      {
+        if (digitalRead(14) == LOW)   {
+          poIle++;
+          delay(250);
+        }
+        if (digitalRead(15) == LOW)   {
+          if (poIle > 0)
+            poIle--;
+          delay(250);
+        }
+        drugaLinia("LICZ PO ", poIle, " szt             ", 0);
+        break;
+      }
+
+
+    case 7:                             //ustaw co ile ma dodawac 1 sztuke np co 2 uderzenia
+      {
+        if (digitalRead(14) == LOW)   {
+          coIle++;
+          delay(200);
+        }
+        if (digitalRead(15) == LOW)   {
+          if (coIle > 1)
+            coIle--;
+
+          delay(200);
+        }
+        drugaLinia("LICZ ", coIle, " takt jak", 1);
+        break;
+      }
+
+    case 8:                             //ustaw delay miedzy impulsami
+      {
+        if (digitalRead(14) == LOW)   {
+          opuznij += 5;
+          delay(200);
+        }
+        if (opuznij > 10)
+          if (digitalRead(15) == LOW)   {
+            opuznij -= 5;
+            delay(200);
+          }
+        drugaLinia("DELAY ", opuznij, " takt    ", 0);
+        break;
+      }
+    case 9:                             //ustaw napiecie wejsciowe impulsu
+      {
+        if (digitalRead(14) == LOW)   {
+          napImpulsu += 0.1;
+          delay(200);
+        }
+        if (digitalRead(15) == LOW)   {
+          if (poIle > 0)
+            napImpulsu -= 0.1;
+          delay(200);
+        }
+        lcd.setCursor(0, 1);
+        lcd.print("MIN NAP IMP ");
+        lcd.print(napImpulsu);
+        break;
+      }
+
+    case 10:                             // tu ustawiam napiecie ponizej ktorego traktujemy jak zero
+      {
+        if (digitalRead(14) == LOW)   {
+          zeroNapiecia += 0.1;
+          delay(200);
+        }
+        if (digitalRead(15) == LOW)   {
+          if (poIle > 0)
+            zeroNapiecia -= 0.1;
+          delay(200);
+        }
+        lcd.setCursor(0, 1);
+        lcd.print("MAX NAP ZERA ");
+        lcd.print(zeroNapiecia);
+        break;
+      }
+
+
   }
 
 }
 void dodaj(int ile) {
-
   takty++;
   if (takty == coIle) {
     ileWszy += ile;
     takty = 0;
+
   }
   ilePacz = ileWszy % ustawPacz;
-  delay(50);
+  delay(150);
 }
 void odejmij(int ile) {
   if (ileWszy > 0) {
     ileWszy -= ile;
     ilePacz = ileWszy % ustawPacz;
   }
-  delay(250);
+  delay(150);
 }
 void liczPacz() {
   if (ilePacz >= ustawPacz)
@@ -191,9 +248,9 @@ void liczKart() {
 
 }
 void zmienEkrany() {
-  delay(250);
+  delay(150);
   ekrany++;
-  if (ekrany > 7)
+  if (ekrany > 10)
     ekrany = 0;
 }
 void drugaLinia(String raz, int dwa, String trzy, int cztery) {
