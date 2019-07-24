@@ -14,12 +14,12 @@ int poIle = 1; //po ile dodawać kolejne sztuki jeśli robi dwa na raz to niech 
 int coIle = 1;
 int takty = 0;
 int sztuka = 1;
-int wartoscImpulsu = 100;
+int wartoscImpulsu = 0;
 int popWartoscImpu  = 0;
 char impuls = 1; //wartosc 0 lub 1 zeby po podaniu ciaglego napiecia nie naliczal kolejnych sztuk
-double napImpulsu = 3.4; //minimalna wartość impulsu w voltach dla impulsu
-double zeroNapiecia = 0.01; // wartosc napiecia ponirzej ktorego uznajemy za zanik impulsu
-int opuznij = 100;
+double napImpulsu = 1.1; //minimalna wartość impulsu w voltach dla impulsu
+double zeroNapiecia = 0.05; // wartosc napiecia ponirzej ktorego uznajemy za zanik impulsu
+int opuznij = 200;
 
 void setup() {
   lcd.begin(16, 2);
@@ -33,28 +33,37 @@ void setup() {
 }
 
 void loop() {
-  wartoscImpulsu = analogRead(A3);
+
+
+  wartoscImpulsu = analogRead(A3); //zczytuje impuls z licznika maszyny
   delay(opuznij);
   if (wartoscImpulsu < zeroNapiecia) //jak napiecie zaniknie to mozna znowu liczyc impuls
     impuls = 1;
   if ((wartoscImpulsu * (5.0 / 1024.0) > napImpulsu) && impuls == 1 ) { //warunek minimalnego napiecia dla impulsu zeby dodac
     dodaj(sztuka * poIle);
+    lcd.begin(16,2);
     impuls = 0;
   }
   //wyswietla napiecie na pinie A3
   Serial.println(wartoscImpulsu * (5.0 / 1024.0));
 
+
+
   if (digitalRead(16) == LOW)   { //przycisk wyboru A2
     zmienEkrany();
+
   }
   liczKart(); //licze kartony
   liczPacz(); //licze zeby było tyle ile ma mieć paczka
+  wyswietl();
 
+}
+void wyswietl() {
   lcd.setCursor(0, 0);
   lcd.print(ileWszy);
   lcd.print(" szt ");
   lcd.print((wartoscImpulsu * (5.0 / 1024.0)));
-  lcd.print("V");
+  lcd.print("V   ");
   // lcd.print(" szt wszystkich ");
   switch (ekrany)
   {
@@ -208,7 +217,7 @@ void loop() {
           delay(200);
         }
         if (digitalRead(15) == LOW)   {
-          if (zeroNapiecia >=0.01)
+          if (zeroNapiecia >= 0.01)
             zeroNapiecia -= 0.01;
           delay(200);
         }
@@ -229,6 +238,8 @@ void dodaj(int ile) {
     ileWszy += ile;
     takty = 0;
 
+
+
   }
   ilePacz = ileWszy % ustawPacz;
   delay(150);
@@ -237,6 +248,7 @@ void odejmij(int ile) {
   if (ileWszy > 0) {
     ileWszy -= ile;
     ilePacz = ileWszy % ustawPacz;
+
   }
   delay(150);
 }
