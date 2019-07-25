@@ -19,7 +19,9 @@ int popWartoscImpu  = 0;
 char impuls = 1; //wartosc 0 lub 1 zeby po podaniu ciaglego napiecia nie naliczal kolejnych sztuk
 double napImpulsu = 1.1; //minimalna wartość impulsu w voltach dla impulsu
 double zeroNapiecia = 0.05; // wartosc napiecia ponirzej ktorego uznajemy za zanik impulsu
-int opuznij = 200;
+int opuznij = 20; //przerwa miedzy cyklami 
+int sygnal = 2; // wyprzedzenie przed iloma workami ma piszcec
+int dlugoscSygnal = 0; //zabezpieczenie przed zatrzymaniem na piszczacym worku
 
 void setup() {
   lcd.begin(16, 2);
@@ -29,21 +31,30 @@ void setup() {
   pinMode(16, INPUT_PULLUP); //przycisk wyboru A2
   Serial.begin(9600);
   wartoscImpulsu = analogRead(A3); //pin 17 czyli A3
-
+  pinMode(A4, OUTPUT); //Konfiguracja A4 jako wyjście dla buzzera
 }
 
 void loop() {
 
 
   wartoscImpulsu = analogRead(A3); //zczytuje impuls z licznika maszyny
-  delay(opuznij);
+    dlugoscSygnal++;
   if (wartoscImpulsu < zeroNapiecia) //jak napiecie zaniknie to mozna znowu liczyc impuls
     impuls = 1;
-  if ((wartoscImpulsu * (5.0 / 1024.0) > napImpulsu) && impuls == 1 ) { //warunek minimalnego napiecia dla impulsu zeby dodac
+  if ((wartoscImpulsu * (5.0 / 1024.0) > napImpulsu) && impuls == 1 ) { //warunek minimalnego napiecia dla impulsu zeby dodac i impuls musi byc poprzedni zero
     dodaj(sztuka * poIle);
-    lcd.begin(16,2);
+    lcd.begin(16, 2);
     impuls = 0;
   }
+  if ((ilePacz == ustawPacz - sygnal )&& dlugoscSygnal < 250) {
+    digitalWrite(A4, HIGH);
+
+  }
+  if (ilePacz == 0 || dlugoscSygnal >= 250) {
+    digitalWrite(A4, LOW);
+  }
+
+
   //wyswietla napiecie na pinie A3
   Serial.println(wartoscImpulsu * (5.0 / 1024.0));
 
@@ -59,12 +70,7 @@ void loop() {
 
 }
 void wyswietl() {
-  lcd.setCursor(0, 0);
-  lcd.print(ileWszy);
-  lcd.print(" szt ");
-  lcd.print((wartoscImpulsu * (5.0 / 1024.0)));
-  lcd.print("V   ");
-  // lcd.print(" szt wszystkich ");
+  pierwszaLinia();
   switch (ekrany)
   {
     case 0:             // bierzacza ilosc w paczce wlasnie robionej
@@ -129,9 +135,6 @@ void wyswietl() {
         drugaLinia("+wyjdz+ -skasuj- ", 0, "", 0);
         break;
       }
-
-
-
     case 5:                             //ustaw ile w kartonie
       {
         if (digitalRead(14) == LOW)   {
@@ -160,8 +163,6 @@ void wyswietl() {
         drugaLinia("LICZ PO ", poIle, " szt             ", 0);
         break;
       }
-
-
     case 7:                             //ustaw co ile ma dodawac 1 sztuke np co 2 uderzenia
       {
         if (digitalRead(14) == LOW)   {
@@ -195,18 +196,18 @@ void wyswietl() {
     case 9:                             //ustaw napiecie wejsciowe impulsu
       {
         if (digitalRead(14) == LOW)   {
-          napImpulsu += 0.05;
-          delay(200);
+          napImpulsu += 0.02;
+          delay(50);
         }
         if (digitalRead(15) == LOW)   {
           if (napImpulsu > 0)
-            napImpulsu -= 0.05;
-          delay(200);
+            napImpulsu -= 0.02;
+          delay(50);
         }
         lcd.setCursor(0, 1);
         lcd.print("MIN V IMP ");
         lcd.print(napImpulsu);
-        lcd.print("V");
+        lcd.print("V  ");
         break;
       }
 
@@ -214,17 +215,34 @@ void wyswietl() {
       {
         if (digitalRead(14) == LOW)   {
           zeroNapiecia += 0.01;
-          delay(200);
+          delay(50);
         }
         if (digitalRead(15) == LOW)   {
           if (zeroNapiecia >= 0.01)
             zeroNapiecia -= 0.01;
-          delay(200);
+          delay(50);
         }
         lcd.setCursor(0, 1);
         lcd.print("MAX V ZER ");
         lcd.print(zeroNapiecia);
         lcd.print("V");
+        break;
+      }
+    case 11:                             // tu ustawiam napiecie ponizej ktorego traktujemy jak zero
+      {
+        if (digitalRead(14) == LOW)   {
+          sygnal += 1;
+          delay(250);
+        }
+        if (digitalRead(15) == LOW)   {
+          if (sygnal >= 2)
+            sygnal -= 1 ;
+          delay(250);
+        }
+        lcd.setCursor(0, 1);
+        lcd.print("SYGNAL ");
+        lcd.print(sygnal);
+        lcd.print(" PRZED  ");
         break;
       }
 
@@ -237,20 +255,17 @@ void dodaj(int ile) {
   if (takty == coIle) {
     ileWszy += ile;
     takty = 0;
-
-
-
+    dlugoscSygnal = 0;
   }
   ilePacz = ileWszy % ustawPacz;
-  delay(150);
+  delay(100);
 }
 void odejmij(int ile) {
   if (ileWszy > 0) {
     ileWszy -= ile;
     ilePacz = ileWszy % ustawPacz;
-
   }
-  delay(150);
+  delay(100);
 }
 void liczPacz() {
   if (ilePacz >= ustawPacz)
@@ -269,8 +284,16 @@ void liczKart() {
 void zmienEkrany() {
   delay(150);
   ekrany++;
-  if (ekrany > 10)
+  if (ekrany > 11)
     ekrany = 0;
+}
+void pierwszaLinia() {
+  lcd.setCursor(0, 0);
+  lcd.print(ileWszy);
+  lcd.print(" szt ");
+  lcd.print((wartoscImpulsu * (5.0 / 1024.0)));
+  lcd.print("V   ");
+  // lcd.print(" szt wszystkich ");
 }
 void drugaLinia(String raz, int dwa, String trzy, int cztery) {
   lcd.setCursor(0, 1);
