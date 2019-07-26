@@ -19,7 +19,7 @@ int popWartoscImpu  = 0;
 char impuls = 1; //wartosc 0 lub 1 zeby po podaniu ciaglego napiecia nie naliczal kolejnych sztuk
 double napImpulsu = 1.1; //minimalna wartość impulsu w voltach dla impulsu
 double zeroNapiecia = 0.05; // wartosc napiecia ponirzej ktorego uznajemy za zanik impulsu
-int opuznij = 20; //przerwa miedzy cyklami 
+int opuznij = 30; //przerwa miedzy cyklami 
 int sygnal = 2; // wyprzedzenie przed iloma workami ma piszcec
 int dlugoscSygnal = 0; //zabezpieczenie przed zatrzymaniem na piszczacym worku
 
@@ -38,6 +38,7 @@ void loop() {
 
 
   wartoscImpulsu = analogRead(A3); //zczytuje impuls z licznika maszyny
+  delay(opuznij);
     dlugoscSygnal++;
   if (wartoscImpulsu < zeroNapiecia) //jak napiecie zaniknie to mozna znowu liczyc impuls
     impuls = 1;
@@ -215,12 +216,12 @@ void wyswietl() {
       {
         if (digitalRead(14) == LOW)   {
           zeroNapiecia += 0.01;
-          delay(50);
+          delay(100);
         }
         if (digitalRead(15) == LOW)   {
           if (zeroNapiecia >= 0.01)
             zeroNapiecia -= 0.01;
-          delay(50);
+          delay(100);
         }
         lcd.setCursor(0, 1);
         lcd.print("MAX V ZER ");
@@ -282,7 +283,7 @@ void liczKart() {
 
 }
 void zmienEkrany() {
-  delay(150);
+  delay(200);
   ekrany++;
   if (ekrany > 11)
     ekrany = 0;
