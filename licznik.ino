@@ -3,12 +3,12 @@
 //             D12     D11      D5      D4      D3      D2
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-int ilePacz = 0;   //ile sztuk w bierzacej paczce
-int ileKart = 0;   //ile pelnych kartonow
+long ilePacz = 0;   //ile sztuk w bierzacej paczce
+long ileKart = 0;   //ile pelnych kartonow
 long ileWszy = 0;   //ile wszystkich produktow
-int ustawPacz = 100; // zadaje ilosc w paczce np 100szt
-int ustawKart = 0; //zadaje ilosc w kartonie np 1000sz
-int ileWOsta = 0; //ile w ostatnim nie pelnym kartonie
+long ustawPacz = 100; // zadaje ilosc w paczce np 100szt
+long ustawKart = 0; //zadaje ilosc w kartonie np 1000sz
+long ileWOsta = 0; //ile w ostatnim nie pelnym kartonie
 int ekrany = 0;
 int poIle = 1; //po ile dodawać kolejne sztuki jeśli robi dwa na raz to niech dodaje po 2 sztuki
 int coIle = 1;
@@ -17,11 +17,12 @@ int sztuka = 1;
 int wartoscImpulsu = 0;
 int popWartoscImpu  = 0;
 char impuls = 1; //wartosc 0 lub 1 zeby po podaniu ciaglego napiecia nie naliczal kolejnych sztuk
-double napImpulsu = 1.1; //minimalna wartość impulsu w voltach dla impulsu
+double napImpulsu = 2.0; //minimalna wartość impulsu w voltach dla impulsu
 double zeroNapiecia = 0.05; // wartosc napiecia ponirzej ktorego uznajemy za zanik impulsu
-int opuznij = 30; //przerwa miedzy cyklami 
+int opuznij = 30; //przerwa miedzy cyklami
 int sygnal = 2; // wyprzedzenie przed iloma workami ma piszcec
 int dlugoscSygnal = 0; //zabezpieczenie przed zatrzymaniem na piszczacym worku
+int wyjdzZMenu = 0;
 
 void setup() {
   lcd.begin(16, 2);
@@ -39,36 +40,30 @@ void loop() {
 
   wartoscImpulsu = analogRead(A3); //zczytuje impuls z licznika maszyny
   delay(opuznij);
-    dlugoscSygnal++;
+
+  dlugoscSygnal++;
+  if (ekrany > 0) //jesli na innym ekranie menu to po czasie wyjdz do ekranu pierwszego
+    wyjdzZMenu++;
+
   if (wartoscImpulsu < zeroNapiecia) //jak napiecie zaniknie to mozna znowu liczyc impuls
     impuls = 1;
-  if ((wartoscImpulsu * (5.0 / 1024.0) > napImpulsu) && impuls == 1 ) { //warunek minimalnego napiecia dla impulsu zeby dodac i impuls musi byc poprzedni zero
+  if ((wartoscImpulsu * (5.0 / 1024.0) > napImpulsu) && impuls == 1 ) { //warunek minimalnego napiecia dla impulsu zeby dodac 1 impuls musi byc poprzedni zero
     dodaj(sztuka * poIle);
     lcd.begin(16, 2);
     impuls = 0;
   }
-  if ((ilePacz == ustawPacz - sygnal )&& dlugoscSygnal < 250) {
-    digitalWrite(A4, HIGH);
-
-  }
-  if (ilePacz == 0 || dlugoscSygnal >= 250) {
-    digitalWrite(A4, LOW);
-  }
-
-
   //wyswietla napiecie na pinie A3
-  Serial.println(wartoscImpulsu * (5.0 / 1024.0));
-
-
+  // Serial.println(wartoscImpulsu * (5.0 / 1024.0));
 
   if (digitalRead(16) == LOW)   { //przycisk wyboru A2
     zmienEkrany();
+    wyjdzZMenu = 0;
 
   }
   liczKart(); //licze kartony
   liczPacz(); //licze zeby było tyle ile ma mieć paczka
   wyswietl();
-
+  buzerr();
 }
 void wyswietl() {
   pierwszaLinia();
@@ -121,7 +116,21 @@ void wyswietl() {
         drugaLinia("PACZKA to ", ustawPacz, " szt      ", 0);
         break;
       }
-    case 4:                             //Zeruj liczniki
+    case 4:                             //ustaw ile w kartonie
+      {
+        if (digitalRead(14) == LOW)   {
+          ustawKart += ustawPacz;
+          delay(250);
+        }
+        if (digitalRead(15) == LOW)   {
+          if (ustawKart >= ustawPacz)
+            ustawKart -= ustawPacz;
+          delay(250);
+        }
+        drugaLinia("KARTON to ", ustawKart, " szt           ", 0);
+        break;
+      }
+    case 5:                             //Zeruj liczniki
       {
         if (digitalRead(14) == LOW)   {     //jak wcisne + to wychodzimy ekran wyrzej
           ekrany = -1;
@@ -136,20 +145,7 @@ void wyswietl() {
         drugaLinia("+wyjdz+ -skasuj- ", 0, "", 0);
         break;
       }
-    case 5:                             //ustaw ile w kartonie
-      {
-        if (digitalRead(14) == LOW)   {
-          ustawKart += ustawPacz;
-          delay(250);
-        }
-        if (digitalRead(15) == LOW)   {
-          if (ustawKart >= ustawPacz)
-            ustawKart -= ustawPacz;
-          delay(250);
-        }
-        drugaLinia("KARTON to ", ustawKart, " szt           ", 0);
-        break;
-      }
+
     case 6:                             //ustaw po ile ma sumowac 1 czy np 2 jak na dwa tory
       {
         if (digitalRead(14) == LOW)   {
@@ -229,21 +225,24 @@ void wyswietl() {
         lcd.print("V");
         break;
       }
-    case 11:                             // tu ustawiam napiecie ponizej ktorego traktujemy jak zero
+    case 11:                             // tu ustawiam wyprzedzenie sygnalu
       {
         if (digitalRead(14) == LOW)   {
           sygnal += 1;
           delay(250);
         }
         if (digitalRead(15) == LOW)   {
-          if (sygnal >= 2)
+          if (sygnal > 0)
             sygnal -= 1 ;
           delay(250);
         }
         lcd.setCursor(0, 1);
         lcd.print("SYGNAL ");
         lcd.print(sygnal);
-        lcd.print(" PRZED  ");
+        if (sygnal > 0)
+          lcd.print(" PRZED  ");
+        if (sygnal == 0)
+          lcd.print(" WYLACZONY");
         break;
       }
 
@@ -256,9 +255,10 @@ void dodaj(int ile) {
   if (takty == coIle) {
     ileWszy += ile;
     takty = 0;
-    dlugoscSygnal = 0;
   }
   ilePacz = ileWszy % ustawPacz;
+  if (wyjdzZMenu > 500) //jak dlugo nie dotykane meni to wyjdz do ekranu pierwszego
+    ekrany = 0;
   delay(100);
 }
 void odejmij(int ile) {
@@ -291,16 +291,27 @@ void zmienEkrany() {
 void pierwszaLinia() {
   lcd.setCursor(0, 0);
   lcd.print(ileWszy);
-  lcd.print(" szt ");
-  lcd.print((wartoscImpulsu * (5.0 / 1024.0)));
-  lcd.print("V   ");
-  // lcd.print(" szt wszystkich ");
+  lcd.print(" szt wszystkich ");
 }
-void drugaLinia(String raz, int dwa, String trzy, int cztery) {
+void drugaLinia(String raz, long dwa, String trzy, long cztery) {
   lcd.setCursor(0, 1);
   lcd.print(raz);
   lcd.print(dwa);
   lcd.print(trzy);
   lcd.print(cztery);
+
+}
+void buzerr() {
+  dlugoscSygnal = 0;
+  if (sygnal > 0) {
+    if (sygnal < poIle)
+      sygnal = poIle;
+    if ((ilePacz >= ( ustawPacz - sygnal )) && (dlugoscSygnal < 250)) {
+      digitalWrite(A4, HIGH);
+    }
+  }
+  if (ilePacz >= 0 && ilePacz <= poIle || dlugoscSygnal >= 250) {
+    digitalWrite(A4, LOW);
+  }
 
 }
