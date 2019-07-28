@@ -23,6 +23,7 @@ int opuznij = 30; //przerwa miedzy cyklami
 int sygnal = 2; // wyprzedzenie przed iloma workami ma piszcec
 int dlugoscSygnal = 0; //zabezpieczenie przed zatrzymaniem na piszczacym worku
 int wyjdzZMenu = 0;
+int ekranyUstawien = 0; //czy rozszerzone menu czy krutkie
 
 void setup() {
   lcd.begin(16, 2);
@@ -39,11 +40,9 @@ void loop() {
 
 
   wartoscImpulsu = analogRead(A3); //zczytuje impuls z licznika maszyny
-  delay(opuznij);
-
-  dlugoscSygnal++;
-  if (ekrany > 0) //jesli na innym ekranie menu to po czasie wyjdz do ekranu pierwszego
-    wyjdzZMenu++;
+  delay(opuznij); //daje małe opuźnienie żeby impuls był pojedyńczy
+  if (dlugoscSygnal < 50)
+    dlugoscSygnal++;
 
   if (wartoscImpulsu < zeroNapiecia) //jak napiecie zaniknie to mozna znowu liczyc impuls
     impuls = 1;
@@ -51,6 +50,7 @@ void loop() {
     dodaj(sztuka * poIle);
     lcd.begin(16, 2);
     impuls = 0;
+    dlugoscSygnal = 0;
   }
   //wyswietla napiecie na pinie A3
   // Serial.println(wartoscImpulsu * (5.0 / 1024.0));
@@ -60,6 +60,11 @@ void loop() {
     wyjdzZMenu = 0;
 
   }
+
+  if (ekrany > 0) //jesli na innym ekranie menu to po czasie wyjdz do ekranu pierwszego
+    if (wyjdzZMenu < 500)
+      wyjdzZMenu++;
+
   liczKart(); //licze kartony
   liczPacz(); //licze zeby było tyle ile ma mieć paczka
   wyswietl();
@@ -91,18 +96,7 @@ void wyswietl() {
         drugaLinia("", ileWOsta, " w ostatnim kartonie  ", ileKart);
         break;
       }
-    case 2:                     // ilosc kartonow
-      {
-        if (digitalRead(14) == LOW)   {
-          dodaj(sztuka * poIle);
-        }
-        if (digitalRead(15) == LOW)   {
-          odejmij(sztuka * poIle);
-        }
-        drugaLinia("", ileKart, " pelne kartony      ", 0);
-        break;
-      }
-    case 3:                             //ustaw ile w paczce
+    case 2:                             //ustaw ile w paczce
       {
         if (digitalRead(14) == LOW)   {
           ustawPacz += 5;
@@ -116,6 +110,18 @@ void wyswietl() {
         drugaLinia("PACZKA to ", ustawPacz, " szt      ", 0);
         break;
       }
+    case 3:                     // ilosc kartonow
+      {
+        if (digitalRead(14) == LOW)   {
+          dodaj(sztuka * poIle);
+        }
+        if (digitalRead(15) == LOW)   {
+          odejmij(sztuka * poIle);
+        }
+        drugaLinia("", ileKart, " pelne kartony      ", 0);
+        break;
+      }
+
     case 4:                             //ustaw ile w kartonie
       {
         if (digitalRead(14) == LOW)   {
@@ -145,8 +151,26 @@ void wyswietl() {
         drugaLinia("+wyjdz+ -skasuj- ", 0, "", 0);
         break;
       }
+    case 6: //Ustawienia tak nie
+      {
+        if (digitalRead(14) == LOW)   { //jak tak to 1
+          ekranyUstawien = 1;
+          delay(250);
+        }
+        if (digitalRead(15) == LOW)   { //jak nie to 0
+          ekranyUstawien = 0;
+          delay(250);
+        }
+        lcd.setCursor(0, 1);
+        lcd.print("USTAWIENIA ");
+        if (ekranyUstawien==1)
+        lcd.print("+ TAK ");
+        if(ekranyUstawien==0)
+        lcd.print("- NIE ");
+        break;
+      }
 
-    case 6:                             //ustaw po ile ma sumowac 1 czy np 2 jak na dwa tory
+    case 7:                             //ustaw po ile ma sumowac 1 czy np 2 jak na dwa tory
       {
         if (digitalRead(14) == LOW)   {
           poIle++;
@@ -160,7 +184,7 @@ void wyswietl() {
         drugaLinia("LICZ PO ", poIle, " szt             ", 0);
         break;
       }
-    case 7:                             //ustaw co ile ma dodawac 1 sztuke np co 2 uderzenia
+    case 8:                             //ustaw co ile ma dodawac 1 sztuke np co 2 uderzenia
       {
         if (digitalRead(14) == LOW)   {
           coIle++;
@@ -169,28 +193,27 @@ void wyswietl() {
         if (digitalRead(15) == LOW)   {
           if (coIle > 1)
             coIle--;
-
           delay(200);
         }
         drugaLinia("LICZ ", coIle, " takt jak", 1);
         break;
       }
 
-    case 8:                             //ustaw delay miedzy impulsami
+    case 9:                             //ustaw delay miedzy impulsami
       {
         if (digitalRead(14) == LOW)   {
-          opuznij += 5;
+          opuznij += 2;
           delay(200);
         }
         if (opuznij > 10)
           if (digitalRead(15) == LOW)   {
-            opuznij -= 5;
+            opuznij -= 2;
             delay(200);
           }
         drugaLinia("DELAY ", opuznij, " takt    ", 0);
         break;
       }
-    case 9:                             //ustaw napiecie wejsciowe impulsu
+    case 10:                             //ustaw napiecie wejsciowe impulsu
       {
         if (digitalRead(14) == LOW)   {
           napImpulsu += 0.02;
@@ -208,7 +231,7 @@ void wyswietl() {
         break;
       }
 
-    case 10:                             // tu ustawiam napiecie ponizej ktorego traktujemy jak zero
+    case 11:                             // tu ustawiam napiecie ponizej ktorego traktujemy jak zero
       {
         if (digitalRead(14) == LOW)   {
           zeroNapiecia += 0.01;
@@ -225,7 +248,7 @@ void wyswietl() {
         lcd.print("V");
         break;
       }
-    case 11:                             // tu ustawiam wyprzedzenie sygnalu
+    case 12:                             // tu ustawiam wyprzedzenie sygnalu
       {
         if (digitalRead(14) == LOW)   {
           sygnal += 1;
@@ -252,19 +275,22 @@ void wyswietl() {
 }
 void dodaj(int ile) {
   takty++;
-  if (takty == coIle) {
+  if (takty == coIle || takty > coIle) {
     ileWszy += ile;
     takty = 0;
   }
   ilePacz = ileWszy % ustawPacz;
   if (wyjdzZMenu > 500) //jak dlugo nie dotykane meni to wyjdz do ekranu pierwszego
     ekrany = 0;
+
+
   delay(100);
 }
 void odejmij(int ile) {
   if (ileWszy > 0) {
     ileWszy -= ile;
     ilePacz = ileWszy % ustawPacz;
+
   }
   delay(100);
 }
@@ -285,12 +311,20 @@ void liczKart() {
 void zmienEkrany() {
   delay(200);
   ekrany++;
-  if (ekrany > 11)
+  if (ekranyUstawien == 1)
+    if (ekrany > 12)
+      ekrany = 0;
+      if(ekranyUstawien==0)
+  if (ekrany > 6)
     ekrany = 0;
 }
 void pierwszaLinia() {
   lcd.setCursor(0, 0);
   lcd.print(ileWszy);
+  //  lcd.print("  ");
+  //  lcd.print(dlugoscSygnal);
+  //  lcd.print("  ");
+  //  lcd.print(wyjdzZMenu);
   lcd.print(" szt wszystkich ");
 }
 void drugaLinia(String raz, long dwa, String trzy, long cztery) {
@@ -302,15 +336,16 @@ void drugaLinia(String raz, long dwa, String trzy, long cztery) {
 
 }
 void buzerr() {
-  dlugoscSygnal = 0;
+
   if (sygnal > 0) {
     if (sygnal < poIle)
       sygnal = poIle;
-    if ((ilePacz >= ( ustawPacz - sygnal )) && (dlugoscSygnal < 250)) {
+    if ((ilePacz >= ( ustawPacz - sygnal )) && (dlugoscSygnal < 50)) {
       digitalWrite(A4, HIGH);
+
     }
   }
-  if (ilePacz >= 0 && ilePacz <= poIle || dlugoscSygnal >= 250) {
+  if (ilePacz >= 0 && ilePacz <= poIle || dlugoscSygnal >= 50) {
     digitalWrite(A4, LOW);
   }
 
