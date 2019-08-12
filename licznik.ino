@@ -14,8 +14,8 @@ int sztuka = 1;
 int wartoscImpulsu = 0;
 int popWartoscImpu  = 0;
 char impuls = 1; //wartosc 0 lub 1 zeby po podaniu ciaglego napiecia nie naliczal kolejnych sztuk
-double napImpulsu = 2.0; //minimalna wartość impulsu w voltach dla impulsu
-double zeroNapiecia = 0.03; // wartosc napiecia ponirzej ktorego uznajemy za zanik impulsu
+double napImpulsu = 3.0; //minimalna wartość impulsu w voltach dla impulsu
+double zeroNapiecia = 0.02; // wartosc napiecia ponirzej ktorego uznajemy za zanik impulsu
 int opuznij = 30; //przerwa miedzy cyklami
 int sygnal = 1; // wyprzedzenie przed iloma workami ma piszcec
 int dlugoscSygnal = 0; //zabezpieczenie przed zatrzymaniem na piszczacym worku
@@ -24,38 +24,44 @@ int ekranyUstawien = 0; //czy rozszerzone menu czy krutkie
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Ustawienie adresu ukladu na 0x27         A4 SDA        A5 SCL
   
 void setup() {
-  //modul na pinie A4 SDA  i A5 SCL
   lcd.begin(16, 2);
+  Serial.begin(9600);
   lcd.print("0");
   pinMode(A0, INPUT_PULLUP); //przycisk dodawania sztuki A0
   pinMode(A1, INPUT_PULLUP); // przycisk odejmowania A1
   pinMode(A2, INPUT_PULLUP); //przycisk wyboru A2
-  Serial.begin(9600);
-  wartoscImpulsu = analogRead(A6); // pin A6
   pinMode(A3, OUTPUT); //Konfiguracja A3 jako wyjście dla buzzera
+  //modul na pinie A4 SDA  dla I2C
+  //    i A5 SCL dla I2C
+  wartoscImpulsu = analogRead(A6); // pin A6 czyta wartosc napiecia inpulsu
+  
   
 }
 
 void loop() {
 
-
-  wartoscImpulsu = analogRead(A6); //zczytuje impuls z licznika maszyny
+  wartoscImpulsu = analogRead(A6); //zczytuje impuls z licznika maszyny A6
+  
   delay(opuznij); //daje małe opuźnienie żeby impuls był pojedyńczy
+  
+  
   if (dlugoscSygnal < 50)
     dlugoscSygnal++;
 
-  if (wartoscImpulsu < zeroNapiecia) //jak napiecie zaniknie to mozna znowu liczyc impuls
+  if (wartoscImpulsu < zeroNapiecia){ //jak napiecie zaniknie to mozna znowu liczyc impuls
     impuls = 1;
+    Serial.println(wartoscImpulsu* (5.0 / 1024.0));
+  }
   if ((wartoscImpulsu * (5.0 / 1024.0) > napImpulsu) && impuls == 1 ) { //warunek minimalnego napiecia dla impulsu zeby dodac 1 impuls musi byc poprzedni zero
     dodaj(sztuka * poIle);
-    lcd.begin(16, 2);
     impuls = 0;
     dlugoscSygnal = 0;
+    
+  Serial.println(wartoscImpulsu* (5.0 / 1024.0));
+  
   }
-  //wyswietla napiecie na pinie A3
-  // Serial.println(wartoscImpulsu * (5.0 / 1024.0));
-
-  if (digitalRead(16) == LOW)   { //przycisk wyboru A2
+ 
+  if (digitalRead(A2) == LOW)   { //przycisk wyboru A2
     zmienEkrany();
     wyjdzZMenu = 0;
 
@@ -76,10 +82,10 @@ void wyswietl() {
   {
     case 0:             // bierzacza ilosc w paczce wlasnie robionej
       {
-        if (digitalRead(14) == LOW)   {
+        if (digitalRead(A0) == LOW)   {
           dodaj(sztuka * poIle);
         }
-        if (digitalRead(15) == LOW)   {
+        if (digitalRead(A1) == LOW)   {
           odejmij(sztuka * poIle);
         }
         drugaLinia("", ilePacz, " sztuk w paczce           ", 0);
@@ -87,10 +93,10 @@ void wyswietl() {
       }
     case 1:                     // bierzaca ilosc sztuk w kartonie
       {
-        if (digitalRead(14) == LOW)   {
+        if (digitalRead(A0) == LOW)   {
           dodaj(sztuka * poIle);
         }
-        if (digitalRead(15) == LOW)   {
+        if (digitalRead(A1) == LOW)   {
           odejmij(sztuka * poIle);
         }
         drugaLinia("ost karon ", ileWOsta, "szt    ", ileKart);
@@ -98,11 +104,11 @@ void wyswietl() {
       }
     case 2:                             //ustaw ile w paczce
       {
-        if (digitalRead(14) == LOW)   {
+        if (digitalRead(A0) == LOW)   {
           ustawPacz += 5;
           delay(250);
         }
-        if (digitalRead(15) == LOW)   {
+        if (digitalRead(A1) == LOW)   {
           if (ustawPacz > 4)
             ustawPacz -= 5;
           delay(250);
@@ -112,10 +118,10 @@ void wyswietl() {
       }
     case 3:                     // ilosc kartonow
       {
-        if (digitalRead(14) == LOW)   {
+        if (digitalRead(A0) == LOW)   {
           dodaj(sztuka * poIle);
         }
-        if (digitalRead(15) == LOW)   {
+        if (digitalRead(A1) == LOW)   {
           odejmij(sztuka * poIle);
         }
         drugaLinia("", ileKart, " pelne kartony      ", 0);
@@ -124,11 +130,11 @@ void wyswietl() {
 
     case 4:                             //ustaw ile w kartonie
       {
-        if (digitalRead(14) == LOW)   {
+        if (digitalRead(A0) == LOW)   {
           ustawKart += ustawPacz;
           delay(250);
         }
-        if (digitalRead(15) == LOW)   {
+        if (digitalRead(A1) == LOW)   {
           if (ustawKart >= ustawPacz)
             ustawKart -= ustawPacz;
           delay(250);
@@ -138,11 +144,11 @@ void wyswietl() {
       }
     case 5:                             //Zeruj liczniki
       {
-        if (digitalRead(14) == LOW)   {     //jak wcisne + to wychodzimy ekran wyrzej
+        if (digitalRead(A0) == LOW)   {     //jak wcisne + to wychodzimy ekran wyrzej
           ekrany = -1;
           zmienEkrany();
         }
-        if (digitalRead(15) == LOW)   {     //jak wcisne - to kasuje liczniki
+        if (digitalRead(A1) == LOW)   {     //jak wcisne - to kasuje liczniki
           ileWszy = 0;
           ilePacz = 0;
           ekrany = -1;
@@ -153,11 +159,11 @@ void wyswietl() {
       }
     case 6: //Ustawienia tak nie
       {
-        if (digitalRead(14) == LOW)   { //jak tak to 1
+        if (digitalRead(A0) == LOW)   { //jak tak to 1
           ekranyUstawien = 1;
           delay(250);
         }
-        if (digitalRead(15) == LOW)   { //jak nie to 0
+        if (digitalRead(A1) == LOW)   { //jak nie to 0
           ekranyUstawien = 0;
           delay(250);
         }
@@ -172,11 +178,11 @@ void wyswietl() {
 
     case 7:                             //ustaw po ile ma sumowac 1 czy np 2 jak na dwa tory
       {
-        if (digitalRead(14) == LOW)   {
+        if (digitalRead(A0) == LOW)   {
           poIle++;
           delay(250);
         }
-        if (digitalRead(15) == LOW)   {
+        if (digitalRead(A1) == LOW)   {
           if (poIle > 0)
             poIle--;
           delay(250);
@@ -186,11 +192,11 @@ void wyswietl() {
       }
     case 8:                             //ustaw co ile ma dodawac 1 sztuke np co 2 uderzenia
       {
-        if (digitalRead(14) == LOW)   {
+        if (digitalRead(A0) == LOW)   {
           coIle++;
           delay(200);
         }
-        if (digitalRead(15) == LOW)   {
+        if (digitalRead(A1) == LOW)   {
           if (coIle > 1)
             coIle--;
           delay(200);
@@ -201,12 +207,12 @@ void wyswietl() {
 
     case 9:                             //ustaw delay miedzy impulsami
       {
-        if (digitalRead(14) == LOW)   {
+        if (digitalRead(A0) == LOW)   {
           opuznij += 2;
           delay(200);
         }
         if (opuznij > 10)
-          if (digitalRead(15) == LOW)   {
+          if (digitalRead(A1) == LOW)   {
             opuznij -= 2;
             delay(200);
           }
@@ -215,11 +221,11 @@ void wyswietl() {
       }
     case 10:                             //ustaw napiecie wejsciowe impulsu
       {
-        if (digitalRead(14) == LOW)   {
+        if (digitalRead(A0) == LOW)   {
           napImpulsu += 0.02;
           delay(50);
         }
-        if (digitalRead(15) == LOW)   {
+        if (digitalRead(A1) == LOW)   {
           if (napImpulsu > 0)
             napImpulsu -= 0.02;
           delay(50);
@@ -233,11 +239,11 @@ void wyswietl() {
 
     case 11:                             // tu ustawiam napiecie ponizej ktorego traktujemy jak zero
       {
-        if (digitalRead(14) == LOW)   {
+        if (digitalRead(A0) == LOW)   {
           zeroNapiecia += 0.01;
           delay(100);
         }
-        if (digitalRead(15) == LOW)   {
+        if (digitalRead(A1) == LOW)   {
           if (zeroNapiecia >= 0.01)
             zeroNapiecia -= 0.01;
           delay(100);
@@ -251,11 +257,11 @@ void wyswietl() {
       }
     case 12:                             // tu ustawiam wyprzedzenie sygnalu
       {
-        if (digitalRead(14) == LOW)   {
+        if (digitalRead(A0) == LOW)   {
           sygnal += 1;
           delay(250);
         }
-        if (digitalRead(15) == LOW)   {
+        if (digitalRead(A1) == LOW)   {
           if (sygnal > 0)
             sygnal -= 1 ;
           delay(250);
@@ -342,12 +348,12 @@ void buzerr() {
     if (sygnal < poIle)
       sygnal = poIle;
     if ((ilePacz >= ( ustawPacz - sygnal )) && (dlugoscSygnal < 50)) {
-      digitalWrite(A4, HIGH);
+      digitalWrite(A3, HIGH);
 
     }
   }
   if (ilePacz >= 0 && ilePacz <= poIle || dlugoscSygnal >= 50) {
-    digitalWrite(A4, LOW);
+    digitalWrite(A3, LOW);
   }
 
 }
