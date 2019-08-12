@@ -1,8 +1,5 @@
-#include <LiquidCrystal.h>
-//VSS-  VDD+   VO-do potencjometru                          A+     K-
-//             D12     D11      D5      D4      D3      D2
-const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+#include <LiquidCrystal_I2C.h> 
+#include <Wire.h>
 long ilePacz = 0;   //ile sztuk w bierzacej paczce
 long ileKart = 0;   //ile pelnych kartonow
 long ileWszy = 0;   //ile wszystkich produktow
@@ -18,28 +15,31 @@ int wartoscImpulsu = 0;
 int popWartoscImpu  = 0;
 char impuls = 1; //wartosc 0 lub 1 zeby po podaniu ciaglego napiecia nie naliczal kolejnych sztuk
 double napImpulsu = 2.0; //minimalna wartość impulsu w voltach dla impulsu
-double zeroNapiecia = 0.05; // wartosc napiecia ponirzej ktorego uznajemy za zanik impulsu
+double zeroNapiecia = 0.03; // wartosc napiecia ponirzej ktorego uznajemy za zanik impulsu
 int opuznij = 30; //przerwa miedzy cyklami
-int sygnal = 2; // wyprzedzenie przed iloma workami ma piszcec
+int sygnal = 1; // wyprzedzenie przed iloma workami ma piszcec
 int dlugoscSygnal = 0; //zabezpieczenie przed zatrzymaniem na piszczacym worku
 int wyjdzZMenu = 0;
 int ekranyUstawien = 0; //czy rozszerzone menu czy krutkie
-
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Ustawienie adresu ukladu na 0x27         A4 SDA        A5 SCL
+  
 void setup() {
+  //modul na pinie A4 SDA  i A5 SCL
   lcd.begin(16, 2);
   lcd.print("0");
-  pinMode(14, INPUT_PULLUP); //przycisk dodawania sztuki A0
-  pinMode(15, INPUT_PULLUP); // przycisk odejmowania A1
-  pinMode(16, INPUT_PULLUP); //przycisk wyboru A2
+  pinMode(A0, INPUT_PULLUP); //przycisk dodawania sztuki A0
+  pinMode(A1, INPUT_PULLUP); // przycisk odejmowania A1
+  pinMode(A2, INPUT_PULLUP); //przycisk wyboru A2
   Serial.begin(9600);
-  wartoscImpulsu = analogRead(A3); //pin 17 czyli A3
-  pinMode(A4, OUTPUT); //Konfiguracja A4 jako wyjście dla buzzera
+  wartoscImpulsu = analogRead(A6); // pin A6
+  pinMode(A3, OUTPUT); //Konfiguracja A3 jako wyjście dla buzzera
+  
 }
 
 void loop() {
 
 
-  wartoscImpulsu = analogRead(A3); //zczytuje impuls z licznika maszyny
+  wartoscImpulsu = analogRead(A6); //zczytuje impuls z licznika maszyny
   delay(opuznij); //daje małe opuźnienie żeby impuls był pojedyńczy
   if (dlugoscSygnal < 50)
     dlugoscSygnal++;
@@ -62,7 +62,7 @@ void loop() {
   }
 
   if (ekrany > 0) //jesli na innym ekranie menu to po czasie wyjdz do ekranu pierwszego
-    if (wyjdzZMenu < 500)
+    if (wyjdzZMenu < 305)
       wyjdzZMenu++;
 
   liczKart(); //licze kartony
@@ -93,7 +93,7 @@ void wyswietl() {
         if (digitalRead(15) == LOW)   {
           odejmij(sztuka * poIle);
         }
-        drugaLinia("", ileWOsta, " w ostatnim kartonie  ", ileKart);
+        drugaLinia("ost karon ", ileWOsta, "szt    ", ileKart);
         break;
       }
     case 2:                             //ustaw ile w paczce
@@ -242,6 +242,7 @@ void wyswietl() {
             zeroNapiecia -= 0.01;
           delay(100);
         }
+        
         lcd.setCursor(0, 1);
         lcd.print("MAX V ZER ");
         lcd.print(zeroNapiecia);
@@ -280,7 +281,7 @@ void dodaj(int ile) {
     takty = 0;
   }
   ilePacz = ileWszy % ustawPacz;
-  if (wyjdzZMenu > 500) //jak dlugo nie dotykane meni to wyjdz do ekranu pierwszego
+  if (wyjdzZMenu > 300) //jak dlugo nie dotykane meni to wyjdz do ekranu pierwszego
     ekrany = 0;
 
 
